@@ -1,4 +1,4 @@
-const CACHE_NAME = 'polyglot-v49';
+const CACHE_NAME = 'polyglot-v51';
 const APP_FILES = [
   './',
   './index.html',
