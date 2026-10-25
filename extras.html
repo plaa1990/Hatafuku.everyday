@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>เครื่องมือเสริม</title>
+<style>
+:root{--bg:#f5f2e8;--fg:#223;--card:#fff;--line:#d9d4c3;--pri:#285b4f;--acc:#e08a6d}
+*{box-sizing:border-box}body{margin:0;font-family:'Noto Sans Thai','DM Sans',sans-serif;background:var(--bg);color:var(--fg);padding:12px}
+h2{margin:0 0 8px;font-size:18px}.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.tabs button,.btn{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 12px;cursor:pointer}
+.tabs button.on,.btn.pri{background:var(--pri);color:#fff;border-color:var(--pri)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:end}label{font-size:13px;display:grid;gap:3px}
+input,select{padding:7px;border:1px solid var(--line);border-radius:8px;font:inherit;max-width:100%}
+#out{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px;overflow:auto}
+#out svg{max-width:100%;height:auto;background:#fff}.lib{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.lib .it{border:1px solid var(--line);border-radius:10px;padding:6px;font-size:12px;background:#fff}.lib svg{width:100%;height:100px}
+.pg{page-break-after:always}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:0}
+.cd{border:1px dashed #888;aspect-ratio:1;display:grid;place-items:center;font-size:28px;text-align:center;padding:4px}
+@media print{body{padding:0;background:#fff}.noprint{display:none!important}#out{border:0;padding:0}}
+</style></head><body>
+<div class="tabs noprint" id="tabs"></div>
+<div id="app"></div>
+<script>
+const $=s=>document.querySelector(s),KP='hh:profile',KL='hh:lib';
+const jget=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}};
+const jset=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){alert('พื้นที่เก็บข้อมูลเต็ม');return false}};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const R=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const prof=()=>jget(KP,{name:'',school:'',logo:''});
+const F='font-family="Noto Sans Thai,sans-serif"';
+function head(w){const p=prof();return `${p.logo?`<image href="${p.logo}" x="10" y="8" width="40" height="40"/>`:''}<text x="${p.logo?58:10}" y="26" font-size="14" ${F}>${esc(p.school)}</text><text x="${w-10}" y="26" font-size="14" text-anchor="end" ${F}>ชื่อ ${esc(p.name)||'.............'} วันที่ ........</text>`}
+const wrap=(w,h,b)=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}"><rect width="${w}" height="${h}" fill="#fff"/>${head(w)}${b}</svg>`;
+// ---------- generators ----------
+const G={
+math:{t:'ใบงานเลข',f:[['op','select',['+','−','×','÷']],['n','number',10],['max','number',20]],run(o){
+ let q='',a='';const n=+o.n||10,m=+o.max||20;
+ for(let i=0;i<n;i++){let x=R(1,m),y=R(1,m),r;
+  if(o.op==='−'){if(y>x)[x,y]=[y,x];r=x-y}else if(o.op==='×'){x=R(1,Math.min(m,12));y=R(1,12);r=x*y}
+  else if(o.op==='÷'){y=R(1,12);r=R(1,12);x=y*r}else r=x+y;
+  const X=20+(i%2)*280,Y=80+Math.floor(i/2)*70;
+  q+=`<text x="${X}" y="${Y}" font-size="24" ${F}>${i+1}) ${x} ${o.op} ${y} = ____</text>`;
+  a+=`<text x="${X}" y="${Y}" font-size="18" ${F}>${i+1}) ${r}</text>`}
+ const h=Math.ceil(n/2)*70+110;
+ return wrap(560,h,q)+wrap(560,h,`<text x="20" y="50" font-size="20" ${F}>เฉลย</text>`+a)}},
+maze:{t:'เขาวงกต',f:[['lv','select',['ง่าย 8×8','กลาง 14×14','ยาก 22×22']]],run(o){
+ const N=[8,14,22][['ง่าย 8×8','กลาง 14×14','ยาก 22×22'].indexOf(o.lv)]||8,S=Math.floor(520/N);
+ const v=[...Array(N)].map(()=>Array(N).fill(0)),W=[];// walls: right/bottom open flags
+ const open=[...Array(N)].map(()=>[...Array(N)].map(()=>({r:0,b:0})));
+ const st=[[0,0]];v[0][0]=1;
+ while(st.length){const[c,r]=st[st.length-1],d=[[1,0],[-1,0],[0,1],[0,-1]].filter(([dx,dy])=>v[r+dy]?.[c+dx]===0);
+  if(!d.length){st.pop();continue}const[dx,dy]=d[R(0,d.length-1)];
+  if(dx===1)open[r][c].r=1;if(dx===-1)open[r][c-1].r=1;if(dy===1)open[r][c].b=1;if(dy===-1)open[r-1][c].b=1;
+  v[r+dy][c+dx]=1;st.push([c+dx,r+dy])}
+ let l='';const X=20,Y=70;
+ for(let r=0;r<N;r++)for(let c=0;c<N;c++){const x=X+c*S,y=Y+r*S;
+  if(!open[r][c].r)l+=`<line x1="${x+S}" y1="${y}" x2="${x+S}" y2="${y+S}"/>`;
+  if(!open[r][c].b)l+=`<line x1="${x}" y1="${y+S}" x2="${x+S}" y2="${y+S}"/>`}
+ l+=`<line x1="${X}" y1="${Y}" x2="${X}" y2="${Y+N*S}"/><line x1="${X}" y1="${Y}" x2="${X+N*S}" y2="${Y}"/>`;
+ return wrap(560,Y+N*S+40,`<g stroke="#222" stroke-width="2.5" stroke-linecap="round">${l}</g><text x="${X}" y="${Y-8}" font-size="14" ${F}>เริ่ม ▶</text><text x="${X+N*S}" y="${Y+N*S+24}" font-size="14" text-anchor="end" ${F}>◀ จบ</text>`)}},
+dots:{t:'ลากเส้นต่อจุด',f:[['pts','number',20]],run(o){
+ const n=Math.max(6,Math.min(60,+o.pts||20));let d='',p='';
+ for(let i=0;i<n;i++){const t=i/n*Math.PI*2,k=1+.35*Math.sin(5*t),x=280+200*k*Math.cos(t),y=300+200*k*Math.sin(t);
+  d+=`<circle cx="${x}" cy="${y}" r="4"/><text x="${x+7}" y="${y-7}" font-size="14" ${F}>${i+1}</text>`}
+ return wrap(560,560,`<g fill="#222">${d}</g>`)}},
+trace:{t:'ลายเส้นฝึกมือ',f:[['kind','select',['คลื่น','ซิกแซก','วงกลม','เส้นตรง']],['rows','number',8]],run(o){
+ let b='';for(let i=0;i<(+o.rows||8);i++){const y=90+i*62;let d=`M20 ${y}`;
+  for(let x=20;x<540;x+=40){
+   if(o.kind==='คลื่น')d+=`q10 -24 20 0 t20 0`;else if(o.kind==='ซิกแซก')d+=`l20 -22 l20 22`;
+   else if(o.kind==='วงกลม')d+=`a14 14 0 1 1 0 .1 m40 0`.replace(/m40 0/,'')+`m40 0`;else d+=`h40`}
+  b+=`<path d="${d}" fill="none" stroke="#999" stroke-width="3" stroke-dasharray="7 6"/>`}
+ return wrap(560,90+(+o.rows||8)*62,b)}},
+mandala:{t:'มันดาลาระบายสี',f:[['k','number',12],['rings','number',4]],run(o){
+ const k=Math.max(4,Math.min(32,+o.k||12)),rg=Math.max(2,Math.min(8,+o.rings||4));let b='';
+ for(let r=1;r<=rg;r++){const R0=r*(240/rg),pet=R(0,2);
+  b+=`<circle cx="280" cy="300" r="${R0}" fill="none" stroke="#222" stroke-width="2"/>`;
+  for(let i=0;i<k;i++){const a=i/k*360;
+   b+=`<g transform="rotate(${a} 280 300)">`+(pet===0?`<ellipse cx="280" cy="${300-R0+14}" rx="9" ry="${240/rg/2.2}" fill="none" stroke="#222" stroke-width="2"/>`:pet===1?`<path d="M280 ${300-R0} l12 ${-18} l-24 0z" fill="none" stroke="#222" stroke-width="2"/>`:`<circle cx="280" cy="${300-R0+10}" r="8" fill="none" stroke="#222" stroke-width="2"/>`)+`</g>`}}
+ return wrap(560,590,b)}},
+paper:{t:'กระดาษกริด/เส้น',f:[['kind','select',['กริด','เส้นบรรทัด','จุด']],['gap','number',20],['w','number',560],['h','number',700]],run(o){
+ const w=+o.w||560,h=+o.h||700,g=Math.max(6,+o.gap||20);let b='';
+ for(let y=60;y<h;y+=g){if(o.kind!=='จุด')b+=`<line x1="10" y1="${y}" x2="${w-10}" y2="${y}" stroke="#bbb"/>`;
+  if(o.kind==='กริด')for(let x=10;x<w;x+=g)b+=`<line x1="${x}" y1="60" x2="${x}" y2="${h}" stroke="#bbb"/>`;
+  if(o.kind==='จุด')for(let x=10;x<w;x+=g)b+=`<circle cx="${x}" cy="${y}" r="1.3" fill="#888"/>`}
+ return wrap(w,h,b)}},
+match:{t:'เกมจับคู่ภาพ-คำ',f:[['pairs','text','🐱=แมว, 🐶=หมา, 🍎=แอปเปิล, 🐟=ปลา']],cards:1,run(o){
+ const ps=String(o.pairs).split(',').map(x=>x.split('=').map(s=>s.trim())).filter(p=>p[1]);
+ return `<div class="cards">${ps.map(p=>`<div class="cd" style="font-size:44px">${esc(p[0])}</div>`).join('')}${ps.map(p=>`<div class="cd">${esc(p[1])}</div>`).join('')}</div><p class="noprint">พิมพ์แล้วตัดตามเส้นประ</p>`}},
+cert:{t:'เกียรติบัตร/ป้ายชื่อ',f:[['kind','select',['เกียรติบัตร','ป้ายชื่อ']],['who','text','ชื่อผู้รับ'],['msg','text','ขอมอบเกียรติบัตรนี้เพื่อแสดงว่า...']],run(o){
+ const p=prof();if(o.kind==='ป้ายชื่อ')return wrap(320,160,`<rect x="6" y="6" width="308" height="148" rx="14" fill="none" stroke="#285b4f" stroke-width="4"/><text x="160" y="105" font-size="34" text-anchor="middle" ${F}>${esc(o.who)}</text>`);
+ return wrap(700,480,`<rect x="14" y="14" width="672" height="452" fill="none" stroke="#c9a227" stroke-width="8"/><text x="350" y="130" font-size="42" text-anchor="middle" ${F}>เกียรติบัตร</text><text x="350" y="230" font-size="36" text-anchor="middle" ${F}>${esc(o.who)}</text><text x="350" y="300" font-size="18" text-anchor="middle" ${F}>${esc(o.msg)}</text><text x="350" y="420" font-size="16" text-anchor="middle" ${F}>${esc(p.school)}</text>`)}},
+flash:{t:'บัตรคำ/ป้ายผนัง',f:[['words','text','แมว, หมา, ปลา'],['big','select',['บัตรคำ (A6)','ป้ายใหญ่ (A4)']]],run(o){
+ const big=o.big.startsWith('ป้าย');return String(o.words).split(',').map(s=>s.trim()).filter(Boolean).map(w=>
+  `<div class="pg">${wrap(big?560:420,big?400:300,`<rect x="8" y="8" width="${big?544:404}" height="${big?384:284}" rx="16" fill="none" stroke="#222" stroke-width="3" stroke-dasharray="8 6"/><text x="${big?280:210}" y="${big?230:170}" font-size="${big?120:80}" text-anchor="middle" ${F}>${esc(w)}</text>`)}</div>`).join('')}}
+};
+// ---------- UI ----------
+const TABS=[...Object.keys(G).map(k=>[k,G[k].t]),['lib','📚 คลังผลงาน'],['prof','👤 โปรไฟล์/สำรองข้อมูล']];
+let cur='math',last='';
+function tabs(){$('#tabs').innerHTML=TABS.map(t=>`<button class="${t[0]===cur?'on':''}" data-t="${t[0]}">${t[1]}</button>`).join('');
+ $('#tabs').onclick=e=>{const t=e.target.dataset.t;if(t){cur=t;show()}}}
+function show(){tabs();cur==='lib'?libView():cur==='prof'?profView():genView()}
+function genView(){const g=G[cur];
+ $('#app').innerHTML=`<div class="panel noprint"><h2>${g.t}</h2><div class="row">${g.f.map(([id,ty,v])=>`<label>${id}${ty==='select'?`<select id="f_${id}">${v.map(x=>`<option>${x}</option>`).join('')}</select>`:`<input id="f_${id}" type="${ty}" value="${esc(v)}">`}</label>`).join('')}
+ <button class="btn pri" id="go">สร้างใหม่</button><button class="btn" id="pr">🖨️ พิมพ์</button><button class="btn" id="sv">💾 เก็บเข้าคลัง</button></div></div><div id="out"></div>`;
+ const run=()=>{const o={};g.f.forEach(([id])=>o[id]=$('#f_'+id).value);last=g.run(o);$('#out').innerHTML=last};
+ $('#go').onclick=run;$('#pr').onclick=()=>print();$('#sv').onclick=()=>{
+  const lib=jget(KL,[]);lib.unshift({id:Date.now(),type:g.t,date:new Date().toISOString().slice(0,10),title:prompt('ชื่อผลงาน',g.t)||g.t,tag:'',html:last});
+  if(jset(KL,lib))alert('เก็บแล้ว')};run()}
+function libView(q=''){const lib=jget(KL,[]).filter(x=>(x.title+x.type+x.tag+x.date).includes(q));
+ $('#app').innerHTML=`<div class="panel noprint"><label>ค้นหา (ชื่อ/ประเภท/แท็ก/วันที่)<input id="q" value="${esc(q)}"></label></div><div class="lib">${lib.map(x=>`<div class="it"><div>${x.html}</div><b>${esc(x.title)}</b><br>${esc(x.type)} · ${x.date}<div class="row"><button class="btn" data-o="${x.id}">เปิด</button><button class="btn" data-d="${x.id}">ลบ</button></div></div>`).join('')||'ยังไม่มีผลงาน'}</div><div id="out"></div>`;
+ $('#q').oninput=e=>libView(e.target.value);
+ $('#app').onclick=e=>{const o=e.target.dataset.o,d=e.target.dataset.d,L=jget(KL,[]);
+  if(o){const x=L.find(i=>i.id==o);$('#out').innerHTML=x.html+'<button class="btn noprint" onclick="print()">🖨️ พิมพ์</button>';$('#out').scrollIntoView()}
+  if(d&&confirm('ลบผลงานนี้?')){jset(KL,L.filter(i=>i.id!=d));libView(q)}}}
+function profView(){const p=prof();
+ $('#app').innerHTML=`<div class="panel"><h2>โปรไฟล์ (เติมลงใบงานอัตโนมัติ)</h2><div class="row"><label>ชื่อ<input id="pn" value="${esc(p.name)}"></label><label>โรงเรียน<input id="ps" value="${esc(p.school)}"></label><label>โลโก้<input id="pl" type="file" accept="image/*"></label><button class="btn pri" id="psave">บันทึก</button></div></div>
+ <div class="panel"><h2>สำรอง / กู้คืนทั้งแอป</h2><p>รวมโปรไฟล์ คลังผลงาน และข้อมูลของสตูดิโอวาดรูปทั้งหมดเป็นไฟล์เดียว</p><div class="row"><button class="btn pri" id="bk">⬇️ สำรองข้อมูล</button><label>กู้คืน<input id="rs" type="file" accept=".json"></label></div></div>`;
+ let logo=p.logo;$('#pl').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=c.height=96;c.getContext('2d').drawImage(im,0,0,96,96);logo=c.toDataURL('image/png')};im.src=r.result};r.readAsDataURL(f)};
+ $('#psave').onclick=()=>{jset(KP,{name:$('#pn').value,school:$('#ps').value,logo});alert('บันทึกแล้ว')};
+ $('#bk').onclick=()=>{const d={app:'hatafuku',v:1,at:new Date().toISOString(),data:{}};
+  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);d.data[k]=localStorage.getItem(k)}
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(d)],{type:'application/json'}));a.download='hatafuku-backup-'+d.at.slice(0,10)+'.json';a.click()};
+ $('#rs').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);if(d.app!=='hatafuku')throw 0;
+  if(!confirm('กู้คืนจะเขียนทับข้อมูลปัจจุบัน ต้องการต่อไหม?'))return;
+  Object.entries(d.data).forEach(([k,v])=>localStorage.setItem(k,v));alert('กู้คืนแล้ว');profView()}catch(x){alert('ไฟล์สำรองไม่ถูกต้อง')}})}}
+show();
+</script></body></html>
