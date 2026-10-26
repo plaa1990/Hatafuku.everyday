@@ -1,4 +1,4 @@
-const CACHE_NAME = 'polyglot-v51';
+const CACHE_NAME = 'polyglot-v52';
 const APP_FILES = [
   './',
   './index.html',
@@ -8,6 +8,7 @@ const APP_FILES = [
   './draw.html',
   './draw-studio.html',
   './extras.html',
+  './typing.html',
   './cozy-theme.css',
   './studio-plus.js',
   './manifest.webmanifest',
