@@ -89,13 +89,23 @@ button,.b,.li{border-radius:18px!important}.li,#sheet,#sheet2,#sheet5,.panel{box
 button.on{background:#cfe4f8!important;color:#2f5f8f!important;border-color:#cfe4f8!important}
 .ban{background:#fbc9a8!important;color:#4a3b36!important;border-radius:18px!important}
 #xpBtn{background:#9b8bdc!important}
+
+.gtool{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 8px}.gtool input[type=text]{flex:1 1 200px}
+.fchips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px;align-items:center}
+.fchips button{min-height:38px;padding:4px 12px;font-size:14px;border-radius:999px!important}
+.fchips .fa{display:flex;gap:4px;margin-left:auto}
+.card .pin{position:absolute;top:6px;left:6px;font-size:16px;background:var(--panel);border-radius:999px;padding:0 6px;line-height:22px;pointer-events:none}
+.card .fl{display:block;color:var(--mu);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mn button{display:flex;width:100%;align-items:center;gap:10px;text-align:left;margin:6px 0}
+.mn select{width:100%}
+#gcnt{font-size:.8rem;color:var(--mu);font-weight:400}
 </style></head>
 <body>
 <main class="wrap">
  <div class="top"><div><h1>SkillHub Studio</h1><p class="sub">แอปวาดรูปในเครื่องคุณ — ภาพทั้งหมดอยู่ในเบราว์เซอร์นี้</p></div>
  <div class="acts"><button class="b on" id="newb">＋ ผืนผ้าใหม่</button><a class="b" href="draw-studio.html#files" onclick="if(parent!==window){event.preventDefault();try{sessionStorage.setItem('shfiles','1')}catch(e){}parent.location.hash='#sh-studio'}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg> นำเข้า / สำรอง</a></div></div>
  <section class="hero" id="hero"></section>
- <h2>ผืนผ้าของฉัน</h2>
+ <h2>ผืนผ้าของฉัน <small id="gcnt"></small></h2><div class="gtool"><input type="text" id="gq" placeholder="🔍 ค้นหาชื่อผืนผ้า" aria-label="ค้นหาผืนผ้า" autocomplete="off"><select id="gsort" aria-label="เรียงลำดับ"><option value="new">เรียง: ล่าสุดก่อน</option><option value="old">เรียง: เก่าสุดก่อน</option><option value="name">เรียง: ชื่อ ก–ฮ</option><option value="size">เรียง: ขนาดใหญ่สุดก่อน</option></select></div><div class="fchips" id="fch" role="group" aria-label="โฟลเดอร์"></div>
  <div class="grid" id="grid" role="list"></div>
  <div class="foot"><button id="ex">ส่งออกสถิติการฝึก</button><button id="im">นำเข้าสถิติ</button></div>
 </main>
@@ -129,17 +139,67 @@ $('hero').innerHTML='<div class="ring" style="--p:'+Math.min(100,m/D.goal*100)+'
 $('goal').onchange=e=>{D.goal=Math.max(1,+e.target.value||10);sv();hero()};
 $('nt').onclick=()=>window.Notification?Notification.requestPermission().then(p=>toast(p=='granted'?'จะเตือนหลัง 18:00 ถ้ายังไม่ถึงเป้า (ตอนเปิดแอป)':'ไม่ได้รับอนุญาต')):toast('เบราว์เซอร์ไม่รองรับ')}
 
+let FD=[],curF='',Q='',SORT='new';
+const FK=()=>idb('put','folders',FD);
+function sortList(l){const pin=x=>x.p?1:0,by={new:(a,b)=>(b.t||0)-(a.t||0),old:(a,b)=>(a.t||0)-(b.t||0),name:(a,b)=>String(a.n).localeCompare(String(b.n),'th'),size:(a,b)=>(b.w*b.h)-(a.w*a.h)}[SORT];return l.sort((a,b)=>pin(b)-pin(a)||by(a,b))}
+function chips(){
+ const cnt=f=>DX.filter(d=>f==''?true:f=='__none'?!d.f||!FD.some(x=>x.id==d.f):d.f==f).length;
+ let h='<button data-f="" class="'+(curF==''?'on':'')+'">ทั้งหมด ('+cnt('')+')</button><button data-f="__none" class="'+(curF=='__none'?'on':'')+'">ไม่จัดหมวด ('+cnt('__none')+')</button>'+FD.map(f=>'<button data-f="'+escH(f.id)+'" class="'+(curF==f.id?'on':'')+'">📁 '+escH(f.n)+' ('+cnt(f.id)+')</button>').join('')+'<button data-f="+" aria-label="สร้างโฟลเดอร์ใหม่">＋ โฟลเดอร์</button>';
+ if(curF&&curF!='__none'&&FD.some(f=>f.id==curF))h+='<span class="fa"><button id="frn" aria-label="เปลี่ยนชื่อโฟลเดอร์">✎</button><button id="fdl" aria-label="ลบโฟลเดอร์">🗑</button></span>';
+ $('fch').innerHTML=h;
+ $('fch').querySelectorAll('[data-f]').forEach(b=>b.onclick=async()=>{const v=b.dataset.f;if(v=='+'){const n=prompt('ชื่อโฟลเดอร์ใหม่');if(n&&n.trim()){const id='f'+Date.now();FD.push({id,n:n.trim().slice(0,30)});await FK();curF=id;grid()}return}curF=v;grid()});
+ if($('frn'))$('frn').onclick=async()=>{const f=FD.find(x=>x.id==curF),n=prompt('ชื่อโฟลเดอร์',f.n);if(n&&n.trim()){f.n=n.trim().slice(0,30);await FK();grid()}};
+ if($('fdl'))$('fdl').onclick=async()=>{const f=FD.find(x=>x.id==curF);if(!confirm('ลบโฟลเดอร์ "'+f.n+'" ? (ผืนผ้าในโฟลเดอร์จะไม่ถูกลบ แค่ย้ายไปเป็น “ไม่จัดหมวด”)'))return;DX.forEach(d=>{if(d.f==f.id)delete d.f});FD=FD.filter(x=>x.id!=f.id);curF='';await FK();await idb('put','idx',DX);grid()}}
 function grid(){
- const list=DX.slice().sort((a,b)=>(b.t||0)-(a.t||0));
- $('grid').innerHTML='<button class="card new" id="newc" role="listitem"><b>＋</b>ผืนผ้าใหม่</button>'+list.map(d=>'<div class="card" role="listitem"><button class="th'+(d.th?'':' empty')+'" data-o="'+escH(d.id)+'" aria-label="เปิด '+escH(d.n)+'">'+(d.th?'<img src="'+d.th+'" alt="">':'')+'</button><div class="meta"><b>'+escH(d.n)+'</b><small>'+d.w+'×'+d.h+(d.bg=='t'?' · โปร่งใส':'')+(d.t?' · '+new Date(d.t).toLocaleDateString('th-TH',{day:'numeric',month:'short'}):'')+'</small></div><div class="ac"><button data-o="'+escH(d.id)+'">เปิด</button><button data-n="'+escH(d.id)+'" aria-label="เปลี่ยนชื่อ">✎</button><button data-c="'+escH(d.id)+'" aria-label="ทำสำเนา">⧉</button><button data-x="'+escH(d.id)+'" aria-label="ลบ">🗑</button></div></div>').join('');
+ chips();
+ const q=Q.trim().toLowerCase();
+ let list=DX.filter(d=>(curF==''?true:curF=='__none'?(!d.f||!FD.some(x=>x.id==d.f)):d.f==curF)&&(!q||String(d.n).toLowerCase().includes(q)));
+ list=sortList(list.slice());
+ $('gcnt').textContent='('+list.length+(list.length!=DX.length?' / '+DX.length:'')+')';
+ const fname=d=>{const f=FD.find(x=>x.id==d.f);return f?'<span class="fl">📁 '+escH(f.n)+'</span>':''};
+ $('grid').innerHTML='<button class="card new" id="newc" role="listitem"><b>＋</b>ผืนผ้าใหม่</button>'+list.map(d=>'<div class="card" role="listitem" style="position:relative"><button class="th'+(d.th?'':' empty')+'" data-o="'+escH(d.id)+'" aria-label="เปิด '+escH(d.n)+'">'+(d.th?'<img src="'+d.th+'" alt="">':'')+'</button>'+(d.p?'<span class="pin" aria-label="ปักหมุด">⭐</span>':'')+'<div class="meta"><b>'+escH(d.n)+'</b><small>'+d.w+'×'+d.h+(d.bg=='t'?' · โปร่งใส':'')+(d.t?' · '+new Date(d.t).toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'}):'')+'</small>'+fname(d)+'</div><div class="ac"><button data-o="'+escH(d.id)+'">เปิด</button><button data-m="'+escH(d.id)+'" aria-label="เมนู '+escH(d.n)+'">⋯ เมนู</button></div></div>').join('');
  $('newc').onclick=newDialog;
  $('grid').querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>openDoc(b.dataset.o));
- $('grid').querySelectorAll('[data-n]').forEach(b=>b.onclick=async()=>{const d=DX.find(x=>x.id==b.dataset.n),n=prompt('ชื่อผืนผ้า',d.n);if(n&&n.trim()){d.n=n.trim().slice(0,40);await idb('put','idx',DX);grid()}});
- $('grid').querySelectorAll('[data-c]').forEach(b=>b.onclick=async()=>{const d=DX.find(x=>x.id==b.dataset.c),rec=await idb('get','d:'+d.id);const id='d'+Date.now();DX.push({...d,id,n:(d.n+' สำเนา').slice(0,40),t:Date.now()});if(rec)await idb('put','d:'+id,rec);await idb('put','idx',DX);grid();toast('ทำสำเนาแล้ว')});
- $('grid').querySelectorAll('[data-x]').forEach(b=>b.onclick=async()=>{const id=b.dataset.x,d=DX.find(x=>x.id==id);if(!confirm('ลบ "'+d.n+'" ถาวร? (กู้คืนไม่ได้ ถ้าต้องการเก็บไว้ให้สำรองก่อน)'))return;
-  DX=DX.filter(x=>x.id!=id);await idb('put','d:'+id,null);await idb('put','tl:'+id,null);
-  const vi=(await idb('get','vi:'+id))||[];for(const v of vi)await idb('put','vd:'+id+':'+v.t,null);await idb('put','vi:'+id,null);
-  await idb('put','idx',DX);grid()})}
+ $('grid').querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>cardMenu(b.dataset.m))}
+
+async function composeDoc(id){
+ const d=DX.find(x=>x.id==id),rec=await idb('get','d:'+id);
+ if(!d||!rec||!rec.b||!rec.b.length)return null;
+ const W=rec.w||d.w,H=rec.h||d.h,mk=()=>{const c=document.createElement('canvas');c.width=W;c.height=H;return c};
+ const BL=['source-over','multiply','screen','overlay','darken','lighten'],LY=[];
+ for(let i=0;i<rec.b.length;i++){const c=mk();c.getContext('2d').drawImage(await createImageBitmap(rec.b[i]),0,0);LY.push({c,...(rec.m[i]||{})})}
+ const GR=rec.gr||[],out=mk(),og=out.getContext('2d'),tc=mk(),tg=mk();
+ if(d.bg!='t'){og.fillStyle='#fff';og.fillRect(0,0,W,H)}
+ const run=(g,a,b,inG)=>{for(let i=a;i<b;i++){const l=LY[i];if(l.v===false)continue;let src=l.c;if(l.k&&i>(inG?a:0)){const t=tc.getContext('2d');t.globalAlpha=1;t.globalCompositeOperation='source-over';t.clearRect(0,0,W,H);t.drawImage(l.c,0,0);t.globalCompositeOperation='destination-in';t.drawImage(LY[i-1].c,0,0);src=tc}g.globalAlpha=l.o==null?1:l.o;g.globalCompositeOperation=BL[l.bl||0]||'source-over';g.drawImage(src,0,0)}g.globalAlpha=1;g.globalCompositeOperation='source-over'};
+ let i=0;while(i<LY.length){const l=LY[i],gr=l.g&&GR.find(x=>x.id==l.g);if(!gr){run(og,i,i+1,false);i++;continue}let j=i;while(j<LY.length&&LY[j].g==l.g)j++;if(gr.v!==false){const t=tg.getContext('2d');t.globalAlpha=1;t.globalCompositeOperation='source-over';t.clearRect(0,0,W,H);run(t,i,j,true);og.globalAlpha=gr.o==null?1:gr.o;og.drawImage(tg,0,0);og.globalAlpha=1}i=j}
+ return out}
+const blobOf=c=>new Promise(r=>c.toBlob(r,'image/png'));
+const fileName=d=>(String(d.n).replace(/[\\\/:*?"<>|]+/g,'_').trim()||'ผืนผ้า')+'.png';
+async function exportDoc(id,share){
+ const d=DX.find(x=>x.id==id);toast('กำลังสร้างรูป…');
+ const c=await composeDoc(id);if(!c)return toast('ผืนผ้านี้ยังไม่มีภาพ เปิดแล้ววาดก่อนนะ');
+ const bl=await blobOf(c),name=fileName(d);
+ if(share){const f=new File([bl],name,{type:'image/png'});
+  if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:d.n});return}catch(e){if(e&&e.name=='AbortError')return}}
+  toast('เครื่องนี้แชร์ไฟล์ตรงๆ ไม่ได้ จึงดาวน์โหลดให้แทน')}
+ const a=document.createElement('a');a.href=URL.createObjectURL(bl);a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),6e4);if(!share)toast('ดาวน์โหลดแล้ว')}
+
+function cardMenu(id){
+ const d=DX.find(x=>x.id==id);
+ const m=modal('<h2>'+escH(d.n)+'</h2><div class="mn"><button data-a="open">🎨 เปิดแก้ไขต่อ</button><button data-a="rn">✎ เปลี่ยนชื่อ</button><label>📁 ย้ายไปโฟลเดอร์<select id="mvf"><option value="">ไม่จัดหมวด</option>'+FD.map(f=>'<option value="'+escH(f.id)+'"'+(d.f==f.id?' selected':'')+'>'+escH(f.n)+'</option>').join('')+'<option value="+">＋ สร้างโฟลเดอร์ใหม่…</option></select></label><button data-a="pin">'+(d.p?'☆ เลิกปักหมุด':'⭐ ปักหมุดไว้บนสุด')+'</button><button data-a="cp">⧉ ทำสำเนา</button><button data-a="png">⬇ ส่งออกเป็น PNG</button><button data-a="sh">↗ แชร์</button><button data-a="del">🗑 ลบ</button></div><p><button class="b" id="mx">ปิด</button></p>');
+ $('mx').onclick=m.close;
+ $('mvf').onchange=async()=>{let v=$('mvf').value;if(v=='+'){const n=prompt('ชื่อโฟลเดอร์ใหม่');if(!n||!n.trim()){$('mvf').value=d.f||'';return}const fid='f'+Date.now();FD.push({id:fid,n:n.trim().slice(0,30)});await FK();v=fid}if(v)d.f=v;else delete d.f;await idb('put','idx',DX);m.close();grid();toast('ย้ายแล้ว')};
+ m.querySelectorAll('[data-a]').forEach(b=>b.onclick=async()=>{const a=b.dataset.a;
+  if(a=='open'){m.close();openDoc(id)}
+  else if(a=='rn'){const n=prompt('ชื่อผืนผ้า',d.n);if(n&&n.trim()){d.n=n.trim().slice(0,40);await idb('put','idx',DX);m.close();grid()}}
+  else if(a=='pin'){if(d.p)delete d.p;else d.p=1;await idb('put','idx',DX);m.close();grid()}
+  else if(a=='cp'){const rec=await idb('get','d:'+d.id),nid='d'+Date.now();DX.push({...d,id:nid,n:(d.n+' สำเนา').slice(0,40),t:Date.now()});if(rec)await idb('put','d:'+nid,rec);await idb('put','idx',DX);m.close();grid();toast('ทำสำเนาแล้ว')}
+  else if(a=='png'){m.close();exportDoc(id,false)}
+  else if(a=='sh'){m.close();exportDoc(id,true)}
+  else if(a=='del'){if(!confirm('ลบ "'+d.n+'" ถาวร? (กู้คืนไม่ได้ ถ้าต้องการเก็บไว้ให้ส่งออกก่อน)'))return;
+   DX=DX.filter(x=>x.id!=id);await idb('put','d:'+id,null);await idb('put','tl:'+id,null);
+   const vi=(await idb('get','vi:'+id))||[];for(const v of vi)await idb('put','vd:'+id+':'+v.t,null);await idb('put','vi:'+id,null);
+   await idb('put','idx',DX);m.close();grid()}})}
 
 function newDialog(){
  const m=modal('<h2>ผืนผ้าใหม่</h2><p><label>ชื่อ<br><input type="text" id="nn" maxlength="40" placeholder="ผืนผ้า '+(DX.length+1)+'" style="width:100%"></label></p><p><select id="gsz" aria-label="ขนาด">'+SZ.map((z,i)=>'<option value="'+i+'">'+z[0]+'</option>').join('')+'<option value="c">กำหนดเอง…</option></select> <span id="gcs" hidden><input id="gcw" type="number" min="64" max="4096" value="1200" aria-label="กว้าง" style="width:84px"> × <input id="gch" type="number" min="64" max="4096" value="900" aria-label="สูง" style="width:84px"></span></p><p><select id="gbg" aria-label="พื้นหลัง"><option value="w">พื้นขาว</option><option value="t">โปร่งใส</option></select></p><p><button class="b on" id="go">สร้างแล้วเริ่มวาด</button> <button class="b" id="cx">ยกเลิก</button></p>');
@@ -150,6 +210,7 @@ function newDialog(){
 $('newb').onclick=newDialog;
 $('ex').onclick=()=>{rl();D.exp=Date.now();sv();const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(D)],{type:'application/json'}));a.download='skillhub-stats.json';a.click()};
 $('im').onclick=()=>{const f=document.createElement('input');f.type='file';f.accept='.json';f.onchange=async()=>{try{const j=JSON.parse(await f.files[0].text());if(!j||typeof j!='object'||!j.min)throw 0;D=j;D.goal=D.goal||10;sv();hero();toast('นำเข้าแล้ว')}catch(e){toast('ไฟล์ไม่ถูกต้อง')}};f.click()};
-async function load(){DX=(await idb('get','idx'))||[];if(!Array.isArray(DX))DX=[];hero();grid()}
+async function load(){DX=(await idb('get','idx'))||[];if(!Array.isArray(DX))DX=[];FD=(await idb('get','folders'))||[];if(!Array.isArray(FD))FD=[];hero();grid()}
+$('gq').oninput=e=>{Q=e.target.value;grid()};$('gsort').onchange=e=>{SORT=e.target.value;try{localStorage.setItem('sh4sort',SORT)}catch(x){}grid()};try{SORT=localStorage.getItem('sh4sort')||'new';$('gsort').value=SORT}catch(x){}
 load();addEventListener('pageshow',e=>{if(e.persisted)load()});
 </script></body></html>

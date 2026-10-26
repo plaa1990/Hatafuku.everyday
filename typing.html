@@ -146,6 +146,7 @@ body.focus-mode.osk #kbpanel{display:block!important}
       <button class="lvl on" id="lvl-1" onclick="setLevel(1)">L1 แป้นเหย้า<small>วางนิ้วให้ถูกก่อน</small></button>
       <button class="lvl" id="lvl-2" onclick="setLevel(2)">L2 คำศัพท์<small>พิมพ์ทีละคำ</small></button>
       <button class="lvl" id="lvl-3" onclick="setLevel(3)">L3 ประโยค<small>ฝึกพิมพ์ต่อเนื่อง</small></button>
+      <button class="lvl" id="lvl-cat" onclick="openCategoryModal()" style="background:var(--lav)">🗂️ เลือกหมวดหมู่<small>เลือกบทหรือหมวดคำที่อยากฝึกโดยเฉพาะ</small></button>
     </section>
     <section class="panel"><h2>เข้าถึงด่วน</h2>
       <button class="link" onclick="openHeatmapModal()">🌡️ แผนผังความร้อน</button>
@@ -153,6 +154,7 @@ body.focus-mode.osk #kbpanel{display:block!important}
       <button class="link" onclick="openGameModal()">🎮 มินิเกมคำร่วง</button>
       <button class="link" onclick="openAchievementsModal()">🏆 เหรียญรางวัล</button>
       <button class="link" onclick="openWeakKeysModal()">⚠️ ตัวอักษรที่พิมพ์พลาด</button>
+      <button class="link" onclick="openWordsModal()">🔁 คำที่พิมพ์ผิดบ่อย</button>
       <button class="link" onclick="exportData()">💾 สำรองข้อมูล</button>
       <button class="link" onclick="document.getElementById('import-input').click()">📥 โหลดข้อมูลสำรอง</button>
       <input type="file" id="import-input" accept=".json" class="hidden" onchange="importData(event)">
@@ -163,6 +165,7 @@ body.focus-mode.osk #kbpanel{display:block!important}
       <div class="modes" id="modes" role="tablist" aria-label="โหมดฝึก">
         <button class="mode on" id="m-lesson" onclick="setMode('lesson')">📚 บทเรียน</button>
         <button class="mode" id="m-weak" onclick="setMode('weak')">🎯 ฝึกตัวที่พลาด</button>
+        <button class="mode" id="m-review" onclick="setMode('review')">🔁 ทบทวนคำผิด</button>
         <button class="mode" id="m-finger" onclick="setMode('finger')">🖐️ ไล่ระดับนิ้ว</button>
         <button class="mode" id="m-t30" onclick="setMode('t30')">⏱️ 30 วิ</button>
         <button class="mode" id="m-t60" onclick="setMode('t60')">⏱️ 60 วิ</button>
@@ -225,6 +228,8 @@ body.focus-mode.osk #kbpanel{display:block!important}
   <p id="sum-note"></p><button class="btn" onclick="closeSummaryModal()">ฝึกบทถัดไป</button></div></div>
 
 <div id="toast" role="status" aria-live="polite"></div>
+<div id="cat-modal" class="modal hidden"><div class="sheet"><h3>🗂️ เลือกหมวดหมู่</h3><p>เลือกบทที่ต้องการ ระบบจะใช้บทนี้ซ้ำจนกว่าจะเลือกสุ่มหรือเปลี่ยนภาษา/ระดับ</p><div id="cat-list" class="list" style="max-height:360px"></div><button class="btn soft" onclick="closeModal('cat-modal')">ปิด</button></div></div>
+<div id="words-modal" class="modal hidden"><div class="sheet"><h3>🔁 คำที่พิมพ์ผิดบ่อย</h3><p id="words-sub">เรียงจากที่ผิดบ่อยที่สุด (เฉพาะภาษาที่เลือกอยู่)</p><div id="words-list" class="list" style="max-height:320px"></div><button class="btn" id="words-go" onclick="startReview()">เริ่มทบทวนคำเหล่านี้</button><button class="btn soft" onclick="clearWords()">ล้างรายการภาษานี้</button><button class="btn soft" onclick="closeModal('words-modal')">ปิด</button></div></div>
 <div id="stage-modal" class="modal hidden"><div class="sheet"><h3>🖐️ ไล่ระดับตามนิ้ว</h3><p>ผ่านด่านด้วยความแม่นยำ ≥ 95% เพื่อปลดล็อกด่านถัดไป (แยกความก้าวหน้าตามภาษา)</p><div id="stage-list" class="list" style="max-height:340px"></div><button class="btn soft" onclick="closeModal('stage-modal')">ปิด</button></div></div>
 <div id="custom-modal" class="modal hidden"><div class="sheet"><h3>✍️ ข้อความของฉัน</h3><p>วางข้อความ/บทความที่อยากฝึก (สูงสุด 600 ตัวอักษร) ระบบใช้แป้นของภาษาที่เลือกอยู่ด้านบน</p><textarea id="custom-input" class="big" placeholder="วางข้อความตรงนี้…"></textarea><p id="custom-msg" style="color:var(--bad);margin:6px 0 0"></p><button class="btn" onclick="startCustom()">เริ่มฝึกข้อความนี้</button><button class="btn soft" onclick="closeModal('custom-modal')">ยกเลิก</button></div></div>
 
@@ -525,9 +530,12 @@ let zenAudioCtx = null;
 let zenGainNode = null;
 let isZenPlaying = false;
 let isFocusMode = false;
-let currentMode = 'lesson';          // lesson | weak | finger | timed | custom
+let currentMode = 'lesson';          // lesson | weak | review | finger | timed | custom
 let currentStage = 1, timedLimit = 30, stagePassed = false, startedAt = 0;
 let customText = '', customNote = '';
+let pinnedItem = null;                 // หมวดที่ปักไว้ { lang, level, item }
+let wordStats = {}; try { wordStats = JSON.parse(localStorage.getItem('typing_weak_words') || '{}') || {}; } catch (e) { wordStats = {}; }
+let wordRanges = [], runWrong = new Set();
 let stageProg = JSON.parse(localStorage.getItem('typing_stages') || '{}');
 
 let LAYOUT = LAYOUTS.qwerty;
@@ -812,9 +820,107 @@ const rndOf = a => a[Math.floor(Math.random() * a.length)];
 function shuffled(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
 function lessonItem() {
+    if (pinnedItem && pinnedItem.lang === currentLang) {
+        return Object.assign({}, pinnedItem.item, { note: '📌 ปักหมวดนี้ไว้ — เปลี่ยนได้ที่ปุ่ม "เลือกหมวดหมู่"' });
+    }
     const list = datasets[currentLang][currentLevel] || datasets[currentLang][1];
     return rndOf(list);
 }
+
+/* ===== เลือกหมวดหมู่ ===== */
+function openCategoryModal() {
+    const ds = datasets[currentLang] || {};
+    const names = { 1: 'L1 ฝึกแป้น', 2: 'L2 คำศัพท์ตามหมวด', 3: 'L3 ประโยค' };
+    let h = `<button class="lvl" style="background:var(--mint)" onclick="pickCategory(0,0)">🎲 สุ่มทุกหมวด<small>ยกเลิกการปักหมวด</small></button>`;
+    [1, 2, 3].forEach(lv => {
+        const list = ds[lv] || [];
+        if (!list.length) return;
+        h += `<div style="font-weight:800;margin:10px 0 6px">${names[lv]}</div>`;
+        h += list.map((it, i) => {
+            const on = pinnedItem && pinnedItem.lang === currentLang && pinnedItem.item === it;
+            return `<button class="lvl" style="background:var(--panel);${on ? 'border-color:var(--ink)' : ''}" onclick="pickCategory(${lv},${i})">${esc(it.meaning || '')}<small>${esc(String(it.native || it.text).slice(0, 30))}</small></button>`;
+        }).join('');
+    });
+    document.getElementById('cat-list').innerHTML = h;
+    openModal('cat-modal');
+}
+function pickCategory(lv, i) {
+    stagePassed = false;
+    if (!lv) { pinnedItem = null; currentMode = 'lesson'; }
+    else {
+        const it = ((datasets[currentLang] || {})[lv] || [])[i];
+        if (!it) return;
+        pinnedItem = { lang: currentLang, level: lv, item: it };
+        currentLevel = lv; currentMode = 'lesson';
+    }
+    closeModal('cat-modal'); initTyping(); userInputEl.focus();
+}
+
+/* ===== ทบทวนคำที่พิมพ์ผิดบ่อย ===== */
+function computeWordRanges(text) {
+    const out = []; let pos = 0;
+    String(text).split(' ').forEach(w => {
+        if (!w) { pos += 1; return; }
+        const n = buildUnitsFor(currentLang, w, REV).units.length;
+        out.push({ w, s: pos, e: pos + n }); pos += n + 1;
+    });
+    return out;
+}
+function reviewPool() {
+    return Object.values(wordStats).filter(o => o && o.l === currentLang && o.m > 0).sort((a, b) => b.m - a.m || (b.ts || 0) - (a.ts || 0)).slice(0, 8);
+}
+function genReviewText(w) {
+    const t = [];
+    w.forEach(o => { for (let i = 0; i < Math.min(o.m, 3); i++) t.push(o.w); });
+    for (let i = 0; t.length < 4; i++) t.push(w[i % w.length].w);
+    return shuffled(t).slice(0, 12).join(' ');
+}
+function commitWordStats() {
+    if (currentMode === 'weak' || currentMode === 'finger') return;
+    try {
+        wordRanges.forEach((r, wi) => {
+            const key = currentLang + '|' + r.w, wrong = runWrong.has(wi), done = typed.length >= r.e;
+            if (wrong) {
+                const o = wordStats[key] || { l: currentLang, w: r.w, m: 0, t: 0 };
+                o.m = (o.m || 0) + 1; o.t = (o.t || 0) + 1; o.ts = Date.now();
+                if (currentItem && currentItem.native && wordRanges.length === 1) o.n = currentItem.native;
+                wordStats[key] = o;
+            } else if (done && wordStats[key]) {
+                wordStats[key].t = (wordStats[key].t || 0) + 1;
+                if (currentMode === 'review') { wordStats[key].m = Math.max(0, (wordStats[key].m || 0) - 1); if (!wordStats[key].m) delete wordStats[key]; }
+            }
+        });
+        const ks = Object.keys(wordStats);
+        if (ks.length > 200) {
+            ks.sort((a, b) => (wordStats[a].m || 0) - (wordStats[b].m || 0) || (wordStats[a].ts || 0) - (wordStats[b].ts || 0));
+            ks.slice(0, ks.length - 200).forEach(k => delete wordStats[k]);
+        }
+        localStorage.setItem('typing_weak_words', JSON.stringify(wordStats));
+    } catch (e) { /* พื้นที่เก็บเต็ม: ข้ามได้ */ }
+}
+const LANG_NAME = { en: 'อังกฤษ', th: 'ไทย', zh: 'จีน', ko: 'เกาหลี', ja: 'ญี่ปุ่น' };
+function openWordsModal() {
+    const mine = Object.entries(wordStats).filter(([k, o]) => o && o.l === currentLang && o.m > 0).sort((a, b) => b[1].m - a[1].m);
+    const other = Object.values(wordStats).filter(o => o && o.l !== currentLang && o.m > 0).length;
+    document.getElementById('words-sub').textContent = `ภาษา${LANG_NAME[currentLang] || ''}` + (other ? ` · ภาษาอื่นมีอีก ${other} คำ (สลับภาษาเพื่อดู)` : '');
+    document.getElementById('words-list').innerHTML = mine.length === 0
+        ? '<div class="row" style="justify-content:center;color:var(--mute)">ยังไม่มีคำที่พิมพ์ผิดบ่อยในภาษานี้ เยี่ยมมาก!</div>'
+        : mine.map(([k, o]) => `<div class="row" style="background:var(--badbg)"><b>${esc(o.n ? o.n + ' · ' + o.w : o.w)}</b><span>ผิด ${o.m} <button class="mini" aria-label="ลบคำนี้" onclick="delWord('${encodeURIComponent(k)}')">✕</button></span></div>`).join('');
+    document.getElementById('words-go').style.display = mine.length ? '' : 'none';
+    openModal('words-modal');
+}
+function delWord(k) {
+    delete wordStats[decodeURIComponent(k)];
+    try { localStorage.setItem('typing_weak_words', JSON.stringify(wordStats)); } catch (e) {}
+    openWordsModal();
+}
+function clearWords() {
+    if (!confirm('ล้างรายการคำที่พิมพ์ผิดของภาษานี้ทั้งหมด?')) return;
+    Object.keys(wordStats).forEach(k => { if (wordStats[k] && wordStats[k].l === currentLang) delete wordStats[k]; });
+    try { localStorage.setItem('typing_weak_words', JSON.stringify(wordStats)); } catch (e) {}
+    openWordsModal();
+}
+function startReview() { closeModal('words-modal'); setMode('review'); }
 
 // ตัวที่พลาดบ่อย (เฉพาะที่พิมพ์ได้ด้วยแป้นของภาษาปัจจุบัน)
 function weakPool() {
@@ -901,6 +1007,12 @@ function startCustom() {
 }
 
 function pickItem() {
+    if (currentMode === 'review') {
+        const w = reviewPool();
+        if (w.length) return { text: genReviewText(w), meaning: 'ทบทวนคำที่เคยพิมพ์ผิดบ่อย — พิมพ์ถูกแล้วจำนวนที่ผิดจะลดลง', note: '🔁 คำที่ทบทวน: ' + w.map(o => o.w).join('  ') };
+        currentMode = 'lesson';
+        return Object.assign({}, lessonItem(), { note: 'ยังไม่มีคำที่พิมพ์ผิดบ่อยในภาษานี้ เลยใช้บทเรียนปกติก่อนนะ' });
+    }
     if (currentMode === 'weak') {
         const w = weakPool();
         if (w.length) return { text: genWeakText(w), meaning: 'ฝึกเฉพาะตัวที่พลาดบ่อย — พิมพ์ถูกแล้วจำนวนที่พลาดจะลดลง', note: '🎯 ตัวที่ฝึก: ' + w.map(x => disp(x[0])).join('  ') };
@@ -917,11 +1029,12 @@ function pickItem() {
 }
 
 function updateModeUI() {
-    ['lesson', 'weak', 'finger', 't30', 't60', 'custom'].forEach(m => {
+    ['lesson', 'weak', 'review', 'finger', 't30', 't60', 'custom'].forEach(m => {
         const on = m === currentMode || (currentMode === 'timed' && m === 't' + timedLimit);
         document.getElementById('m-' + m).classList.toggle('on', on);
     });
-    for (let i = 1; i <= 3; i++) document.getElementById(`lvl-${i}`).classList.toggle('on', currentMode === 'lesson' && i === currentLevel);
+    for (let i = 1; i <= 3; i++) document.getElementById(`lvl-${i}`).classList.toggle('on', currentMode === 'lesson' && i === currentLevel && !(pinnedItem && pinnedItem.lang === currentLang));
+    document.getElementById('lvl-cat').classList.toggle('on', currentMode === 'lesson' && !!(pinnedItem && pinnedItem.lang === currentLang));
 }
 
 function setMode(m) {
@@ -934,14 +1047,14 @@ function setMode(m) {
 }
 
 function setLevel(lvl) {
-    currentLevel = lvl; currentMode = 'lesson'; stagePassed = false;
+    currentLevel = lvl; currentMode = 'lesson'; stagePassed = false; pinnedItem = null;
     for (let i = 1; i <= 3; i++) document.getElementById(`lvl-${i}`).classList.toggle('on', i === lvl);
     initTyping();
     userInputEl.focus();
 }
 
 function setLanguage(lang) {
-    currentLang = lang; if (currentMode === 'custom') currentMode = 'lesson'; if (currentStage > stageUnlocked()) currentStage = 1;
+    currentLang = lang; pinnedItem = null; if (currentMode === 'custom') currentMode = 'lesson'; if (currentStage > stageUnlocked()) currentStage = 1;
     ['en','th','zh','ko','ja'].forEach(l => document.getElementById(`btn-${l}`).classList.toggle('on', l === lang));
     applyLayout();
     initTyping();
@@ -967,6 +1080,7 @@ function initTyping() {
 
     const built = buildUnitsFor(currentLang, currentItem.text, REV);
     units = built.units; clusters = built.clusters;
+    wordRanges = computeWordRanges(currentItem.text); runWrong = new Set();
 
     targetTextEl.innerHTML = '';
     clusters.forEach(c => {
@@ -1091,7 +1205,7 @@ function onTyped(arr, echo) {
             keyStats[k] = (keyStats[k] || 0) + 1;
         }
         const want = units[i].ch;
-        if (typed[i] !== want) weakKeys[want] = (weakKeys[want] || 0) + 1;
+        if (typed[i] !== want) { weakKeys[want] = (weakKeys[want] || 0) + 1; const wi = wordRanges.findIndex(r => i >= r.s && i < r.e); if (wi >= 0) runWrong.add(wi); }
         else if (currentMode === 'weak' && weakKeys[want] > 0) { weakKeys[want]--; if (!weakKeys[want]) delete weakKeys[want]; }
     }
     if (typed.length > prev) {
@@ -1112,6 +1226,7 @@ function finishRun() {
     const prevBest = ghostWpm;
     saveHighScore(wpm);
     unlockBadge('first');
+    commitWordStats();
     if (acc === 100) unlockBadge('acc100');
 
     typingHistory.push({ wpm, acc, date: new Date().toLocaleDateString(), ts: Date.now(), lang: currentLang, mode: currentMode });
@@ -1129,6 +1244,7 @@ function finishRun() {
             } else note = 'ผ่านด่านนี้แล้ว ✅';
         } else { stagePassed = false; title = 'เกือบแล้ว!'; note = `ต้องแม่นยำ ≥ 95% (รอบนี้ ${acc}%) ลองด่านนี้อีกครั้ง`; }
     } else if (currentMode === 'weak') note = 'ตัวที่พิมพ์ถูกถูกหักออกจากรายการพลาดแล้ว';
+    else if (currentMode === 'review') note = 'คำที่พิมพ์ถูกโดยไม่พลาดถูกหักออกจากรายการแล้ว';
     else if (currentMode === 'timed') {
         const ok = typed.filter((t, i) => t === units[i].ch).length;
         title = 'หมดเวลา!'; note = `พิมพ์ถูก ${ok} ตัวใน ${timedLimit} วินาที`;
@@ -1282,7 +1398,7 @@ document.getElementById('game-input').addEventListener('keydown', (e) => {
 
 // Export / Import JSON
 function exportData() {
-    const data = { weakKeys, keyStats, typingHistory, achievements, stageProg, dailyLog, dailyGoal, totalRuns };
+    const data = { weakWords: wordStats, weakKeys, keyStats, typingHistory, achievements, stageProg, dailyLog, dailyGoal, totalRuns };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1298,6 +1414,7 @@ function importData(event) {
     reader.onload = (e) => {
         try {
             const data = JSON.parse(e.target.result);
+            if (data.weakWords) localStorage.setItem('typing_weak_words', JSON.stringify(data.weakWords));
             if (data.weakKeys) localStorage.setItem('typing_weak_keys', JSON.stringify(data.weakKeys));
             if (data.keyStats) localStorage.setItem('typing_key_stats', JSON.stringify(data.keyStats));
             if (data.typingHistory) localStorage.setItem('typing_history', JSON.stringify(data.typingHistory));

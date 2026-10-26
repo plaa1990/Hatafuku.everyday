@@ -1,9 +1,12 @@
-const CACHE_NAME = 'polyglot-v52';
+const CACHE_NAME = 'polyglot-v54';
 const APP_FILES = [
   './',
   './index.html',
   './hatafuku-theme.css',
   './worksheet-extras.js',
+  './pg-color-fields.js',
+  './worksheet-free.js',
+  './balloon-plus.js',
   './html2canvas.min.js',
   './draw.html',
   './draw-studio.html',
