@@ -186,11 +186,27 @@ async function exportDoc(id,share){
 
 function cardMenu(id){
  const d=DX.find(x=>x.id==id);
- const m=modal('<h2>'+escH(d.n)+'</h2><div class="mn"><button data-a="open">🎨 เปิดแก้ไขต่อ</button><button data-a="rn">✎ เปลี่ยนชื่อ</button><label>📁 ย้ายไปโฟลเดอร์<select id="mvf"><option value="">ไม่จัดหมวด</option>'+FD.map(f=>'<option value="'+escH(f.id)+'"'+(d.f==f.id?' selected':'')+'>'+escH(f.n)+'</option>').join('')+'<option value="+">＋ สร้างโฟลเดอร์ใหม่…</option></select></label><button data-a="pin">'+(d.p?'☆ เลิกปักหมุด':'⭐ ปักหมุดไว้บนสุด')+'</button><button data-a="cp">⧉ ทำสำเนา</button><button data-a="png">⬇ ส่งออกเป็น PNG</button><button data-a="sh">↗ แชร์</button><button data-a="del">🗑 ลบ</button></div><p><button class="b" id="mx">ปิด</button></p>');
+ const m=modal('<h2>'+escH(d.n)+'</h2><div class="mn"><button data-a="open">🎨 เปิดแก้ไขต่อ</button><button data-a="linetheme" style="background:#e8f5e9;border-color:#a5d6a7;color:#1e463a;font-weight:700">🎨 ส่งไปเป็นพื้นหลังธีม LINE</button><button data-a="rn">✎ เปลี่ยนชื่อ</button><label>📁 ย้ายไปโฟลเดอร์<select id="mvf"><option value="">ไม่จัดหมวด</option>'+FD.map(f=>'<option value="'+escH(f.id)+'"'+(d.f==f.id?' selected':'')+'>'+escH(f.n)+'</option>').join('')+'<option value="+">＋ สร้างโฟลเดอร์ใหม่…</option></select></label><button data-a="pin">'+(d.p?'☆ เลิกปักหมุด':'⭐ ปักหมุดไว้บนสุด')+'</button><button data-a="cp">⧉ ทำสำเนา</button><button data-a="png">⬇ ส่งออกเป็น PNG</button><button data-a="sh">↗ แชร์</button><button data-a="del">🗑 ลบ</button></div><p><button class="b" id="mx">ปิด</button></p>');
  $('mx').onclick=m.close;
  $('mvf').onchange=async()=>{let v=$('mvf').value;if(v=='+'){const n=prompt('ชื่อโฟลเดอร์ใหม่');if(!n||!n.trim()){$('mvf').value=d.f||'';return}const fid='f'+Date.now();FD.push({id:fid,n:n.trim().slice(0,30)});await FK();v=fid}if(v)d.f=v;else delete d.f;await idb('put','idx',DX);m.close();grid();toast('ย้ายแล้ว')};
  m.querySelectorAll('[data-a]').forEach(b=>b.onclick=async()=>{const a=b.dataset.a;
   if(a=='open'){m.close();openDoc(id)}
+  else if(a=='linetheme'){
+    toast('กำลังเตรียมภาพสำหรับธีม LINE…');
+    const c=await composeDoc(id);
+    if(!c){toast('ผืนผ้านี้ยังไม่มีภาพ เปิดแล้ววาดก่อนนะ');return}
+    const dataUrl=c.toDataURL('image/jpeg', 0.88);
+    try{localStorage.setItem('lineTheme_importedBg', dataUrl)}catch(e){}
+    try{window.dispatchEvent(new CustomEvent('studio:use-image',{detail:{dataUrl}}))}catch(e){}
+    m.close();
+    toast('ส่งภาพไปสตูดิโอธีม LINE แล้ว! 🚀');
+    if(parent!==window){
+      parent.location.hash='#linetheme';
+      try{parent.dispatchEvent(new CustomEvent('studio:use-image',{detail:{dataUrl}}))}catch(e){}
+    } else {
+      location.href='line-theme.html';
+    }
+  }
   else if(a=='rn'){const n=prompt('ชื่อผืนผ้า',d.n);if(n&&n.trim()){d.n=n.trim().slice(0,40);await idb('put','idx',DX);m.close();grid()}}
   else if(a=='pin'){if(d.p)delete d.p;else d.p=1;await idb('put','idx',DX);m.close();grid()}
   else if(a=='cp'){const rec=await idb('get','d:'+d.id),nid='d'+Date.now();DX.push({...d,id:nid,n:(d.n+' สำเนา').slice(0,40),t:Date.now()});if(rec)await idb('put','d:'+nid,rec);await idb('put','idx',DX);m.close();grid();toast('ทำสำเนาแล้ว')}

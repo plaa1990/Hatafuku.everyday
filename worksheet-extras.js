@@ -42,6 +42,16 @@ window.PG_WS_HALF1 = function () {
     '#pgHideSection .pg-quick button{min-width:0;flex:1 1 140px;padding:9px 10px;font-size:13px;background:#e5e7eb;color:#374151}' +
     '.pg-focus-btn{position:fixed;top:10px;right:10px;z-index:1200;min-width:0;flex:none;padding:8px 14px;font-size:13px;background:#374151;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.25)}' +
     'html.pg-focus .controls-container{display:none!important}' +
+    '.pg-jelly-stamp{position:absolute;top:6mm;right:10mm;transform:rotate(-4deg);display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:999px;font-weight:700;font-size:13px;line-height:1;box-shadow:0 6px 16px rgba(0,0,0,.12),inset 0 2px 2px rgba(255,255,255,.8),inset 0 -2px 4px rgba(0,0,0,.15);border:2px solid rgba(255,255,255,.9);pointer-events:none;z-index:10;user-select:none;transition:transform .2s}' +
+    '.pg-jelly-gold{background:linear-gradient(135deg,#ffe082,#ffb300);color:#5d4037}' +
+    '.pg-jelly-coral{background:linear-gradient(135deg,#ffab91,#e64a19);color:#fff}' +
+    '.pg-jelly-rose{background:linear-gradient(135deg,#f8bbd0,#ec407a);color:#fff}' +
+    '.pg-jelly-teal{background:linear-gradient(135deg,#a7f3d0,#059669);color:#064e3b}' +
+    '.pg-jelly-sky{background:linear-gradient(135deg,#bae6fd,#0284c7);color:#fff}' +
+    '.pg-jelly-purple{background:linear-gradient(135deg,#e9d5ff,#9333ea);color:#fff}' +
+    '.pg-speech-btn{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#e0f2fe;color:#0284c7;border:1px solid #bae6fd;cursor:pointer;font-size:13px;padding:0;margin-left:6px;vertical-align:middle;transition:all .15s}' +
+    '.pg-speech-btn:hover{background:#0284c7;color:#fff;transform:scale(1.1)}' +
+    '@media print{.pg-speech-btn{display:none!important}}' +
     '@media(max-width:900px){.pg-focus-btn{display:none!important}}' +
     '@media print{.pg-focus-btn{display:none!important}}';
   document.head.appendChild(css);
@@ -54,7 +64,22 @@ window.PG_WS_HALF1 = function () {
     '<div class="pg-quick">' +
     '<button type="button" id="pgHideHints">ซ่อนคำอ่าน+แปล+รูป</button>' +
     '<button type="button" id="pgHideChrome">ซ่อนหัว-ท้ายกระดาษ</button>' +
-    '<button type="button" id="pgShowAll">แสดงทั้งหมด</button></div>';
+    '<button type="button" id="pgShowAll">แสดงทั้งหมด</button></div>' +
+    '<div id="pgStampSection" style="margin-top:14px;padding-top:12px;border-top:1px dashed #cbd5d1">' +
+    '<h4 style="margin:0 0 6px;font-size:15px">🏷️ ตรายาง 3D เยลลี่ / ตราประทับตรวจการบ้าน</h4>' +
+    '<select id="pgStampChoice" style="width:100%;padding:10px;border-radius:12px;border:1px solid #d1d5db;background:#fff;font-size:14px">' +
+    '<option value="none">-- ไม่มีตราประทับ --</option>' +
+    '<option value="gold|เก่งมาก 🌟">🌟 เก่งมาก (สีทองหวาน)</option>' +
+    '<option value="coral|ดีเยี่ยม 💯">💯 ดีเยี่ยม (สีคอรัล)</option>' +
+    '<option value="rose|ผ่านฉลุย 💕">💕 ผ่านฉลุย (สีชมพูพาสเทล)</option>' +
+    '<option value="teal|เกรด A+ 👑">👑 เกรด A+ (สีเขียวเอเมอรัลด์)</option>' +
+    '<option value="purple|ตรวจแล้ว ✨">✨ ตรวจแล้ว (สีม่วงลาเวนเดอร์)</option>' +
+    '<option value="sky|ยอดเยี่ยม 🚀">🚀 ยอดเยี่ยม (สีฟ้าสดใส)</option>' +
+    '<option value="custom">✏️ พิมพ์ข้อความเอง...</option>' +
+    '</select>' +
+    '<div id="pgCustomStampWrap" style="display:none;margin-top:8px">' +
+    '<input type="text" id="pgCustomStampText" placeholder="ข้อความตรายาง เช่น ยอดเยี่ยมมาก 👏" style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:10px;font-size:13px">' +
+    '</div></div>';
   box.appendChild(sec);
 
   ids.forEach(id => { if (typeof inputsToSave !== 'undefined' && !inputsToSave.includes(id)) inputsToSave.push(id); });
@@ -66,7 +91,22 @@ window.PG_WS_HALF1 = function () {
     date: 'วันที่: <input type="text" size="8">'
   };
 
-  function applyHide() {
+  function speakText(txt) {
+    if (!window.speechSynthesis) return;
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(txt.trim());
+      if (/[\u0E00-\u0E7F]/.test(txt)) u.lang = 'th-TH';
+      else if (/[\uAC00-\uD7AF]/.test(txt)) u.lang = 'ko-KR';
+      else if (/[\u3040-\u30FF\u4E00-\u9FAF]/.test(txt)) u.lang = 'ja-JP';
+      else if (/[\u4E00-\u9FFF]/.test(txt)) u.lang = 'zh-CN';
+      else u.lang = 'en-US';
+      u.rate = 0.9;
+      window.speechSynthesis.speak(u);
+    } catch(e) {}
+  }
+
+  function applyEnhancements() {
     const root = document.documentElement, on = {};
     OPTS.forEach(o => {
       const e = $('pgHide_' + o[0]), v = !!(e && e.checked);
@@ -82,16 +122,83 @@ window.PG_WS_HALF1 = function () {
         m.style.display = html ? '' : 'none';
       });
     }
+
+    // 3D Jelly stamp injection
+    const sc = $('pgStampChoice');
+    const stampVal = sc ? sc.value : 'none';
+    let stampText = '', stampColor = 'coral';
+    if (stampVal === 'custom') {
+      const ct = $('pgCustomStampText');
+      stampText = ct ? ct.value.trim() : '';
+      stampColor = 'rose';
+    } else if (stampVal && stampVal !== 'none') {
+      const parts = stampVal.split('|');
+      stampColor = parts[0];
+      stampText = parts[1] || '';
+    }
+
+    document.querySelectorAll('.page-header').forEach(h => {
+      let st = h.querySelector('.pg-jelly-stamp');
+      if (!stampText) {
+        if (st) st.remove();
+      } else {
+        if (!st) {
+          st = document.createElement('div');
+          h.appendChild(st);
+        }
+        st.className = 'pg-jelly-stamp pg-jelly-' + stampColor;
+        st.innerHTML = '<span>' + stampText + '</span>';
+      }
+    });
+
+    // Pronunciation Speaker Button injection (non-print)
+    document.querySelectorAll('.example-card').forEach(c => {
+      const main = c.querySelector('.example-main');
+      if (!main || main.querySelector('.pg-speech-btn')) return;
+      const word = main.textContent.trim();
+      if (!word) return;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'pg-speech-btn';
+      btn.title = 'ฟังเสียงอ่าน: ' + word;
+      btn.textContent = '🔊';
+      btn.onclick = e => { e.stopPropagation(); speakText(word); };
+      main.appendChild(btn);
+    });
+
+    document.querySelectorAll('.cmp-card').forEach(c => {
+      const txt = c.querySelector('.cmp-txt');
+      if (!txt || txt.querySelector('.pg-speech-btn')) return;
+      const word = txt.textContent.trim();
+      if (!word) return;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'pg-speech-btn';
+      btn.title = 'ฟังเสียงอ่าน: ' + word;
+      btn.textContent = '🔊';
+      btn.onclick = e => { e.stopPropagation(); speakText(word); };
+      txt.appendChild(btn);
+    });
   }
 
   const baseRender = render;
-  render = function () { baseRender(); applyHide(); };
+  render = function () { baseRender(); applyEnhancements(); };
 
   ids.forEach(id => { const e = $(id); if (e) e.addEventListener('change', () => render()); });
   const setMany = (keys, val) => { keys.forEach(k => { const e = $('pgHide_' + k); if (e) e.checked = val; }); render(); };
   $('pgHideHints').onclick = () => setMany(['hRoman', 'hMeaning', 'hIcon'], true);
   $('pgHideChrome').onclick = () => setMany(['hSub', 'hPageNo', 'hFooter'], true);
   $('pgShowAll').onclick = () => setMany(OPTS.map(o => o[0]), false);
+
+  if ($('pgStampChoice')) {
+    $('pgStampChoice').addEventListener('change', e => {
+      if ($('pgCustomStampWrap')) $('pgCustomStampWrap').style.display = e.target.value === 'custom' ? 'block' : 'none';
+      render();
+    });
+  }
+  if ($('pgCustomStampText')) {
+    $('pgCustomStampText').addEventListener('input', () => render());
+  }
 
   /* ปุ่มซ่อนแผงตั้งค่าเพื่อดูใบงานเต็มจอ (เดสก์ท็อป) */
   const fb = document.createElement('button');

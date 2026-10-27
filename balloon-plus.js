@@ -98,6 +98,30 @@ window.PG_BL_PLUS = function () {
     b.textContent = '🧩 PNG โปร่งใส';
     b.title = 'ส่งออกพื้นหลังโปร่งใส ตัดขอบพอดีรูป ใช้เป็นสติกเกอร์ได้ทันที';
     exp.insertAdjacentElement('afterend', b);
+    /* ปุ่มส่งคำไปสตูดิโอธีม LINE */
+    if (!document.getElementById('pgLineThemeBtn')) {
+      const lt = document.createElement('button');
+      lt.id = 'pgLineThemeBtn'; lt.className = 'sec'; lt.type = 'button';
+      lt.textContent = '🎨 ส่งไปทำธีม LINE';
+      lt.title = 'นำคำนี้และชุดสีไปทำธีม LINE สไตล์เยลลี่ 3D ทันที';
+      lt.style.cssText = 'background:#fff4ed;border:1px solid #fed2c3;color:#b94e2e;font-weight:700;margin-left:4px;';
+      b.insertAdjacentElement('afterend', lt);
+      lt.onclick = () => {
+        const curTxt = (document.getElementById('text') ? document.getElementById('text').value : '').trim() || 'OK';
+        const col = document.getElementById('color') ? document.getElementById('color').value : null;
+        const col2 = document.getElementById('color2') ? document.getElementById('color2').value : null;
+        const font = document.getElementById('font') ? document.getElementById('font').value : null;
+        const pack = document.getElementById('pack') ? document.getElementById('pack').value : '';
+        const payload = { text: curTxt, color: col, color2: col2, font: font, pack: pack, timestamp: Date.now() };
+        try { localStorage.setItem('lineTheme_importedWord', JSON.stringify(payload)); } catch(e){}
+        if (window.parent && window.parent !== window) {
+          window.parent.location.hash = '#linetheme';
+          window.parent.postMessage({ type: 'linetheme:apply-word', payload: payload }, '*');
+        } else {
+          location.hash = '#linetheme';
+        }
+      };
+    }
     b.onclick = async () => {
       const bg = $('bgOn'), xf = $('xfmt');
       const was = [bg.checked, xf.value];
