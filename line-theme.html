@@ -256,9 +256,11 @@ html, body {
 .tabs-nav-sticky {
   position: sticky;
   top: 0;
-  z-index: 15;
-  background: var(--background);
-  padding: 2px 0 10px 0;
+  z-index: 25;
+  background: rgba(246, 245, 238, 0.96);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 4px 0 8px 0;
   margin-bottom: 2px;
 }
 
@@ -309,49 +311,58 @@ html, body {
 .floating-mob-btn {
   display: none;
   position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 60;
+  bottom: calc(34px + env(safe-area-inset-bottom, 12px));
+  right: 18px;
+  z-index: 95;
   background: var(--primary);
   color: #fff;
-  border: 0;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
   border-radius: 999px;
-  padding: 11px 18px;
-  font-size: 13.5px;
+  padding: 12px 20px;
+  font-size: 14px;
   font-weight: 700;
-  box-shadow: 0 6px 20px rgba(49, 95, 83, 0.35);
+  box-shadow: 0 8px 24px rgba(49, 95, 83, 0.42), 0 2px 8px rgba(0, 0, 0, 0.12);
   cursor: pointer;
-  transition: transform 0.16s ease, background 0.16s ease;
+  transition: transform 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+  touch-action: manipulation;
 }
 .floating-mob-btn:hover {
   background: var(--primary-hover);
-  transform: scale(1.04);
+  transform: scale(1.03);
+}
+.floating-mob-btn:active {
+  transform: scale(0.97);
 }
 
 /* Back to Top in Left Column */
 .scroll-top-btn {
   position: fixed;
-  bottom: 24px;
-  left: 28px;
-  z-index: 50;
+  bottom: calc(88px + env(safe-area-inset-bottom, 12px));
+  right: 18px;
+  left: auto;
+  z-index: 90;
   background: #ffffff;
   color: var(--primary);
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   border-radius: 999px;
-  padding: 8px 14px;
+  padding: 8px 15px;
   font-size: 12px;
   font-weight: 700;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.14);
   cursor: pointer;
   display: none;
   align-items: center;
   gap: 5px;
   transition: all 0.16s ease;
+  touch-action: manipulation;
 }
 .scroll-top-btn:hover {
   background: #eef3ee;
   border-color: var(--primary);
   transform: translateY(-2px);
+}
+.scroll-top-btn:active {
+  transform: scale(0.96);
 }
 
 @media (max-width: 960px) {
@@ -361,6 +372,9 @@ html, body {
     grid-template-columns: 1fr;
     padding: 10px 14px 14px;
   }
+  .lt-left-col {
+    padding-bottom: 120px !important;
+  }
   .lt-left-col.mob-hidden, .lt-right-col.mob-hidden {
     display: none !important;
   }
@@ -368,6 +382,8 @@ html, body {
     align-items: center;
     justify-content: flex-start;
     padding-top: 10px;
+    padding-bottom: 100px;
+  }
   }
 }
 
@@ -511,18 +527,33 @@ html, body {
   padding: 14px;
 }
 
+/* Step Progress Track */
+.step-progress-track {
+  height: 4px;
+  background: #dedcd0;
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 7px;
+}
+.step-progress-fill {
+  height: 100%;
+  width: 25%;
+  background: linear-gradient(90deg, #315f53, #559383);
+  border-radius: 99px;
+  transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 4-Step Tabs Nav */
 .tabs-nav {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
+  gap: 5px;
   background: #e8e7dc;
-  padding: 5px;
-  border-radius: 15px;
+  padding: 4px;
+  border-radius: 14px;
   border: 1px solid #dcdbd0;
-  margin-bottom: 20px;
-}
-@media (max-width: 640px) {
-  .tabs-nav { grid-template-columns: repeat(2, 1fr); }
+  margin-bottom: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 }
 .tab-btn {
   border: 0;
@@ -530,23 +561,107 @@ html, body {
   color: #556c62;
   font-weight: 600;
   font-size: 12.5px;
-  padding: 11px 8px;
-  border-radius: 11px;
+  padding: 9px 6px;
+  border-radius: 10px;
   transition: all 0.16s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tab-btn .tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(85, 108, 98, 0.16);
+  color: inherit;
+  font-size: 10.5px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.tab-btn.active .tab-badge {
+  background: rgba(255, 255, 255, 0.28);
+  color: #ffffff;
 }
 .tab-btn:hover {
   color: var(--foreground);
-  background: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.5);
 }
 .tab-btn.active {
   background: var(--primary);
   color: #ffffff;
   font-weight: 700;
   box-shadow: 0 3px 10px rgba(49, 95, 83, 0.22);
+}
+@media (max-width: 640px) {
+  .tabs-nav {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 3px;
+    padding: 3px;
+    border-radius: 12px;
+  }
+  .tab-btn {
+    font-size: 11px;
+    padding: 7px 2px;
+    gap: 3px;
+    flex-direction: column;
+  }
+  .tab-btn .tab-badge {
+    width: 17px;
+    height: 17px;
+    font-size: 10px;
+  }
+  .tab-btn .tab-text-full { display: none; }
+  .tab-btn .tab-text-short { display: inline; }
+}
+@media (min-width: 641px) {
+  .tab-btn .tab-text-short { display: none; }
+  .tab-btn .tab-text-full { display: inline; }
+}
+
+/* Step Navigation Footer in Panes */
+.step-nav-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border);
+}
+.step-nav-footer .btn {
+  min-height: 42px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 12px;
+  padding: 9px 16px;
+}
+.step-nav-footer .step-next-btn {
+  margin-left: auto;
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(49, 95, 83, 0.2);
+}
+.step-nav-footer .step-finish-btn {
+  margin-left: auto;
+  background: linear-gradient(135deg, #2b7a66, #1f5749);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(31, 87, 73, 0.3);
+}
+@media (max-width: 520px) {
+  .step-nav-footer {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+  .step-nav-footer .btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .form-group {
@@ -954,14 +1069,33 @@ html, body {
 <main class="lt-main">
   <!-- LEFT: Independently Scrollable Controls Column -->
   <div class="lt-left-col" id="leftCol">
-    <div class="tabs-nav-sticky"><div class="tabs-nav">
-      <button class="tab-btn active" data-tab="1">✨ 1. สี & ฟอนต์</button>
-      <button class="tab-btn" data-tab="2">🖼️ 2. พื้นหลัง & ลาย</button>
-      <button class="tab-btn" data-tab="3">🔢 3. รหัสผ่าน</button>
-      <button class="tab-btn" data-tab="4">🎈 4. เยลลี่ 3D</button>
-    </div>
-
-    <!-- Main Card -->
+    <div class="tabs-nav-sticky">
+      <!-- Step Progress Bar -->
+      <div class="step-progress-track" title="ความคืบหน้าการสร้างธีม">
+        <div class="step-progress-fill" id="stepProgressFill" style="width: 25%;"></div>
+      </div>
+      <div class="tabs-nav">
+        <button class="tab-btn active" data-tab="1" title="ขั้นตอนที่ 1: สีและฟอนต์">
+          <span class="tab-badge">1</span>
+          <span class="tab-text-full">✨ สี & ฟอนต์</span>
+          <span class="tab-text-short">สี/ฟอนต์</span>
+        </button>
+        <button class="tab-btn" data-tab="2" title="ขั้นตอนที่ 2: พื้นหลังและลาย">
+          <span class="tab-badge">2</span>
+          <span class="tab-text-full">🖼️ พื้นหลัง & ลาย</span>
+          <span class="tab-text-short">พื้นหลัง</span>
+        </button>
+        <button class="tab-btn" data-tab="3" title="ขั้นตอนที่ 3: รหัสผ่าน">
+          <span class="tab-badge">3</span>
+          <span class="tab-text-full">🔢 รหัสผ่าน</span>
+          <span class="tab-text-short">รหัสผ่าน</span>
+        </button>
+        <button class="tab-btn" data-tab="4" title="ขั้นตอนที่ 4: เยลลี่ 3D">
+          <span class="tab-badge">4</span>
+          <span class="tab-text-full">🎈 เยลลี่ 3D</span>
+          <span class="tab-text-short">เยลลี่ 3D</span>
+        </button>
+      </div>
     </div>
     <div class="panel">
       <div class="form-group">
@@ -1035,6 +1169,17 @@ html, body {
 
         <!-- Contrast Indicator -->
         <div id="contrastBox" class="panel-sub" style="margin-top:14px;"></div>
+
+        <!-- Step 1 Navigation Footer -->
+        <div class="step-nav-footer">
+          <button type="button" class="btn btn-soft" id="btnPreviewStep1">
+            📱 ดูตัวอย่างผลลัพธ์
+          </button>
+          <button type="button" class="btn btn-primary step-next-btn" id="btnNextStep1">
+            <span>ขั้นตอนถัดไป: 2. พื้นหลัง & ลาย</span>
+            <span style="font-size:14px;">➔</span>
+          </button>
+        </div>
       </div>
 
       <!-- PANE 2: Backgrounds & Patterns -->
@@ -1147,6 +1292,18 @@ html, body {
             <div style="display:flex;flex-direction:column;align-items:center;"><span style="font-size:14px;">⚙️</span><span>Setting</span></div>
           </div>
         </div>
+
+        <!-- Step 2 Navigation Footer -->
+        <div class="step-nav-footer">
+          <button type="button" class="btn btn-soft" id="btnPrevStep2">
+            <span>‹</span>
+            <span>ย้อนกลับ: 1. สี & ฟอนต์</span>
+          </button>
+          <button type="button" class="btn btn-primary step-next-btn" id="btnNextStep2">
+            <span>ขั้นตอนถัดไป: 3. รหัสผ่าน</span>
+            <span style="font-size:14px;">➔</span>
+          </button>
+        </div>
       </div>
 
       <!-- PANE 3: Passcode -->
@@ -1159,6 +1316,18 @@ html, body {
           <div style="font-size:12px;color:var(--muted);line-height:1.6;">
             💡 ปุ่มตัวเลข 0–9 จะถูกสร้างเป็นปุ่มกลม 3D นูนฟู พร้อมไล่เฉดสีนุ่มนวล และสีกดติดอัตโนมัติที่อ่านง่าย เหมาะกับทั้ง iOS และ Android
           </div>
+        </div>
+
+        <!-- Step 3 Navigation Footer -->
+        <div class="step-nav-footer">
+          <button type="button" class="btn btn-soft" id="btnPrevStep3">
+            <span>‹</span>
+            <span>ย้อนกลับ: 2. พื้นหลัง & ลาย</span>
+          </button>
+          <button type="button" class="btn btn-primary step-next-btn" id="btnNextStep3">
+            <span>ขั้นตอนถัดไป: 4. เยลลี่ 3D</span>
+            <span style="font-size:14px;">➔</span>
+          </button>
         </div>
       </div>
 
@@ -1318,6 +1487,18 @@ html, body {
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
           <button id="btnJellyDl" class="btn btn-primary">⬇️ ดาวน์โหลดภาพเยลลี่ PNG</button>
           <button id="btnJellySend" class="btn btn-accent">📤 ส่งไปแอปสติ๊กเกอร์ / วาดรูป</button>
+        </div>
+
+        <!-- Step 4 Navigation Footer -->
+        <div class="step-nav-footer">
+          <button type="button" class="btn btn-soft" id="btnPrevStep4">
+            <span>‹</span>
+            <span>ย้อนกลับ: 3. รหัสผ่าน</span>
+          </button>
+          <button type="button" class="btn step-finish-btn" id="btnFinishExport">
+            <span>📦 สร้าง & ดาวน์โหลดธีม LINE (.ZIP)</span>
+            <span style="font-size:14px;">🎉</span>
+          </button>
         </div>
       </div>
     </div>
@@ -2499,6 +2680,10 @@ function switchTab(n) {
   [1, 2, 3, 4].forEach(i => $('pane' + i).style.display = i === n ? 'block' : 'none');
   setView(n === 3 ? 'pass' : 'chat');
   if (n === 4) renderJellyPreview();
+  const prog = $('stepProgressFill');
+  if (prog) prog.style.width = (n * 25) + '%';
+  const leftCol = $('leftCol');
+  if (leftCol) leftCol.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function setView(v) {
@@ -2598,6 +2783,14 @@ function init() {
   renderBalloonQuickChips();
 
   document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(+b.dataset.tab)));
+  $('btnNextStep1')?.addEventListener('click', () => switchTab(2));
+  $('btnPreviewStep1')?.addEventListener('click', () => setMobileView('preview'));
+  $('btnPrevStep2')?.addEventListener('click', () => switchTab(1));
+  $('btnNextStep2')?.addEventListener('click', () => switchTab(3));
+  $('btnPrevStep3')?.addEventListener('click', () => switchTab(2));
+  $('btnNextStep3')?.addEventListener('click', () => switchTab(4));
+  $('btnPrevStep4')?.addEventListener('click', () => switchTab(3));
+  $('btnFinishExport')?.addEventListener('click', () => buildThemeZip());
   $('vChat').addEventListener('click', () => setView('chat'));
   $('vPass').addEventListener('click', () => setView('pass'));
   $('vDark').addEventListener('click', () => {
